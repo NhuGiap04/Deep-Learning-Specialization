@@ -1,2 +1,2 @@
-# Machine-Learning
-Push ML code to Github
+# Deep-Learning
+Push ML and DL code to Github
