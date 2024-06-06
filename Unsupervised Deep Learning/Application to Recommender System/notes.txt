@@ -1,0 +1,149 @@
+APPLICATION TO RECOMMENDER SYSTEM
+I. Introduction
+1. What is the recommender's goal?
+. To accurately predict ratings
+. I give you a list of items, ranked by their predicted rating
+2. Dataset
+. Normally in machine learning, we think of our data as an NxD matrix
+. N = number of samples, D = number of features
+. Rating data is not STRUCTURED in this way
+
+MovieLens data
+. userId and movieId are integers, but they are not real-valued, they are categorical
+
+User-Item Rating Matrix
+. N users, M items -> N x M matrix
+. r(i, j) -> the rating user i gave to movie j
+
+Data Representation
+. Supervised: 20M X (features) -> 20M Y (rating)
+=> Unsupervised: N x M ratings only
+
+3. Term-document and User-item
+. Both are sparse
+. X(t, d) = 0 means term t didn't appear in document d - the zero is meaningful
+. 26k movies
+    . How many movies you have seen? Of there, how many have you rated?
+. Just because you haven't seen a movie, doesn't mean you'd rate it as 0!
+
+4. The purpose of a recommender system
+. Rating matrix must have missing entries
+. If you've seen and rated every movie in existence, we'd have nothing to recommend to you!
+
+5. How sparse?
+. 20 million ratings / 3.38 billion entries
+. 0.006 < 1%
+
+II. Why Autoencoders and RBMs work
+1. Why Autoencoders and RBMs work?
+. Why are they a good fit for recommender system?
+. Their job is to find a latent representation of the data
+. Compact: # hidden < # visible
+. They find "useful structure" / "hidden patterns"
+
+. They are able to generate/ produce a visible vector (x) from a hidden vector (h) that follows the same distribution
+as the training data
+. How might such pattern finding work for recommender system?
+    . Suppose I like Star Wars Episode 1, 2, 3, 4, 5
+    . Will I like Star Wars Episode 6?
+    . Most likely!
+
+2. Denoising Autoencoders
+. Autoencoder's job is to reproduce original image, including missing parts
+. That's exactly what a rating matrix is
+. Your "feature vector" (movie ratings) is full of missing values
+. A denoising autoencoder is an autoencoder where some inputs are missing
+
+3. RBMs
+. We want to maximize p(v) - whatever observations we observed
+. E.g:
+    . Those who like romance probably like the Notebook, A Cinderella Story, etc.
+. If there was no pattern: then what people like is completely random
+. However, we know patterns do exist
+
+III. Data Preparation and Logistics
+1. Sequential IDs
+. User IDs go from 1 ~ 100k
+. We know that they must index rows of an array
+. Must have 2 important properties
+    . Start from 0
+    . Sequential (no missing values)
+        . Why? Imagine max user ID is 1 million but we only have 200 users
+    . i.e. for a matrix with N rows, each integer 0 -> N-1 should represent a user
+. For user IDs, this is the case, but not so for movie IDs.
+    . Will need to remap movie IDs to go from 0 -> M-1
+
+2. Dataset is large
+. We can optionally shrink it to keep only the top movies and users
+. Top user: user who has rated the most movies
+. Top movie: movie rated by the most users
+. It makes our ratings matrix as dense as possible (less missing data)
+
+3. Making the user-items matrix
+. Kaggle ratings data isn't in the right format
+    . It's a CSV (user ID, movie ID, rating)
+    . 20 million rows
+. We need to convert it into a N x M ratings matrix
+. Won't fit in the memory, need Scipy's sparse
+
+IV. AutoRec
+1. Rating Matrix
+. Each individual cell is a sample
+E.g: (User 1, Item 1, 5), (User 1, Item 3, 1), ...
+. We should have 20 million samples (because there are 20 million ratings)
+
+2. AutoRec
+. Simply treat the user-movies matrix as if it were an sample-features data matrix (with tons of missing values)
+. Use your imagination:
+    . Each user is a sample
+    . Each feature is a movie rating
+
+3. Why is this faster?
+. DNN that looks at each rating individually loops over 20 million samples per epoch
+. Since we only have 130k users, AutoRec loops over 130k samples per epoch.
+
+4. New Addition
+. Add your own noise to inputs
+. Goal: You want to predict missing ratings
+. Not simply reconstruct input (predict ratings that are already given)
+. Simply in Keras: Dropout()
+
+5. N x M
+. Special format in Scipy: "Sparse matrix"
+. Keras doesn't recognize sparse matrices!
+. Solution: custom generator
+    . Densify only a batch at a time
+
+6. Calculating loss
+. An array can't contain "missing" values, just zeros (luckily, all actual ratings are 0.5 - 5.0, so it's easy to
+differentiate)
+. Must make sure autoencoder doesn't literally try to reproduce input x (otherwise, it will try to reproduce the zeros
+too!)
+. Solution: make the cost
+    J = 1 / |omega| * sigma (i = 1 -> N) { sigma (j = 1 -> M) {m(i, j) * [r(i, j) - r_hat(i, j)] ^ 2}}
+
+    m(i, j) = 1 if (i, j) belongs to omega else 0
+
+7. Test MSE
+. Normally, the test error is calculated from the test input, e.g.
+    error = get_loss(y_test, model.predict(x_test))
+. Doesn't make sense here!
+. The train ratings should predict the test ratings
+
+. pred = model.predict(X_train) # output is N x M
+# in reality you'd have to do this in batches but pretend it's ok
+error = get_loss(X_test, pred)
+
+    J_test = 1 / |omega_test| * sigma (i = 1 -> N) { sigma (j = 1 -> M) {m_test(i, j) * [r(i, j) - r_hat(i, j)] ^ 2}}
+
+    m_test(i, j) = 1 if (i, j) belongs to omega_test else 0
+    r_hat(i, j) = reconstruction from training data
+
+V. Categorical RBM for Recommender System Ratings
+1. Extending Bernoulli RBM
+. Why Bernoulli won't work?
+. Bernoulli must be 0 and 1 (or between 0 and 1)
+
+2. Categorical RBM
+. Visible units represent a K-class categorical distribution
+. Ratings go from 0.5 -> 5 = 10 categories

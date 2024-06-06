@@ -1,0 +1,5 @@
+1) Clone Tensorflow's model repo
+2) Install protobuf
+3) Install Object Detection API
+4) Download test images
+5) Download/ extract model (from Object Detection Zoo)

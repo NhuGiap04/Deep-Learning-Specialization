@@ -1,0 +1,273 @@
+################################ PART 1 ################################
+1. Transfer Learning
+vgg = VGG16(input_shape=..., include_top=False, weights='imagenet')
+x = Flatten()(vgg.output)
+x = Dense(4, activation='sigmoid')(x) # (row, col, height, width)
+model = Model(vgg.input, x)
+model.compile(loss='binary_crossentropy', optimizer='adam')
+
+2. Image Generator
+def my_generator(batch_size=64):
+    while True:
+        for _ in range(num_batches):
+            # Generate X of size (batch_size, H, W, 3)
+            # Generate Y of size (batch_size, 4)
+            yield X, Y
+a) Generating Batches
+X = zeros((batch_size, 100, 100, 3)) # already all black
+Y = zeros((batch_size, 4))
+for i in range(batch_size):
+    # generate row0, col0, row1, col1
+    row0 = random_int(0, 90)
+    col0 = random_int(0, 90) # leave some space for actual box
+    row1 = random_int(row0, 100) # row1 >= row0
+    col1 = random_int(col0, 100) # col1 >= col0
+    X[i, row0: row1, col0:col1, :] = 1
+b) Generating the target
+# must generate 4 numbers
+# first 2 numberes: top-left corner
+# second 2 numbers: height, width
+Y[i, 0] = row0 / 100
+Y[i, 1] = col0 / 100
+Y[i, 2] = (row1 - row0) / 100
+Y[i, 3] = (col1 - col0) / 100
+c) Plotting Predictions
+def plot_predictions():
+    # generate a random image
+    # should look similar to data generator
+    X = ...
+
+    # predict bounding box
+    p = model.predict(X)
+
+    # reverse the transformation into un-normalized form
+
+    # plot the image, along with the predicted box (using matplotlib)
+################################ PART 2 ################################
+- Use an actual object instead of just a white square
+1. Loading an image
+    - Use the Keras API
+    - New library: imageio
+    - New library: scikit-image
+Outline
+# 1 - Data generator
+    . A little more compilcated, because we're adding Charmander
+# 2 - Build and train the model
+# 3 - Plot predictions
+
+a) Data Generator
+def my_generator(batch_size=64):
+    while True:
+        for _ in range(num_batches):
+            # Generate X of size (batch_size, H, W, 3)
+            # Generate Y of size (batch_size, 4)
+            yield X, Y
+b) Adding Charmander
+# Note: background is still all black
+H, W = # size of full image
+CH_H, CH_W =  # size of Charmander
+
+row0 = random_int(0, H - CH_H)
+col0 = random_int(0, W - CH_W)
+
+# Charmander is of fixed size
+row1 = row0 + CH_H
+col1 = col0 + CH_W
+
+X[i, row0:row1, col0:col1, :] = charmander_image
+################################ PART 3 ################################
+Arbitrary Size Charmander
+Outline
+1) Data Generator
+2) Build Networks/ use Transfer Learning
+3) Plot predictions with bounding box
+a) Data Generator
+# still surrounded by "while True" and
+# for i in range(n_batches)
+
+# randomly select scale factor
+scale = U(0.5, 1.5)
+
+# calculate new height and width
+new_height, new_width = int(scale * CH_H), int(scale * CH_W)
+
+# resize the charmander (scikit-image, not scipy)
+obj = resize(charmander, new_height, new_width)
+
+# select location randomly
+# same as before, except use new dimensions
+row0, col0, row1, col1 = ...
+
+# store the (resized) object
+# only use the first 3 color channels!
+X[i, row0:row1, col0:col1, :] = obj[:, :, :3]
+...
+yield X, Y
+################################ PART 4 ################################
+.Recap:
+  . Plain white box on black background
+  . Replace the white box (object) with Charmander
+  . Resize Charmander
+  . Flip Charmander!
+Other things you could do
+  . Make the object lighter/darker
+  . Such a feature sounds essential for self-driving!
+  . Rotation at arbitrary angles
+  . Exercise - think about how to calculate bounding box
+  . Exercise - how do you rotate an image, mathematically?
+  . Difference between this example and the "real world" - it is a matter of data collection rather than generation
+
+Code Changes
+# maybe flip
+if np.random.random() < 0.5:
+    obj = np.fliplr(chr)
+else:
+    obj = ch
+################################ PART 5 ################################
+Making things more complicated
+. Recap:
+  . Plain white box on black background
+  . Replace the white box (object) with Charmander
+  . Resize Charmander
+  . Flip Charmander!
+  . Now: Real Background images!
+Why is it harder?
+. If the background is all black, then anything not black is the object
+. Now, we have distractions
+
+How do we implement this?
+. You may at first assume it will be the same as before
+
+# randomly select row0, col0, etc.
+# assign:
+    X[i, row0:row1, col0:col1, :] = obj
+Quiz: think about why this won't work
+? Why it won't work
+. 4th color channel tells us pixel opacity/ transparency
+. When we have complete transparency, all 4 color channels = 0
+. Since we only look at the first 3, it resolves as black in the final image
+
++ instead of =
+. Currently, we are doing assignment (=)
+. What if we add instead (+)? (or +=)
+. This might work, because anything + 0 = anything
+
+Not so fast!
+. Now the background will be correct(since adding 0 has no effect)
+. But adding Charmander pixels to background pixels is not correct
+
+What we want
+. Ideally , we would have zeros in opposite locations
+. In the background, have zeros where Charmander should be
+. In the object image, have zeros where the background should be
+
+Transparency layer
+. The 4th color channel tells us where Charmander should be (and consequently should not be)
+-----------------------------
+# where should background be
+mask = (obj[:, :. :3] == 0)
+
+# mask = True or 1 where background is
+
+# relevant part of background
+slice = x[row0:row1, col0:col1, :]
+
+# multiply x 1 = background
+# multiply x 0 = black
+slice = slice * mask
+-----------------------------
+
+It works!
+. Note: we mask the slice only (since it's the same size as the Charmander image), and then put this rectangle back
+on the original (as before)
+################################ PART 6 ################################
+. Recap:
+  . Plain white box on black background
+  . Replace the white box (object) with Charmander
+  . Resize Charmander
+  . Flip Charmander!
+  . Real Background images!
+  . What if the object doesn't appear?
+Why would we want this?
+. self-driving car
+
+Network Outputs
+VGG => Top Row, Left Col, Height, Width, p(object appeared|x) (we can use sigmoid for all inputs)
+
+Loss Function?
+. The 'normal' binary cross-entropy is shown below
+    L = -1/5 sum{t_k.log(p_k) + (1 - t_k)log(1 - p_k)} for k = 1 -> 5
+. Let p1,..., p5 be the predictions, and t1, ..., t5 be the targets
+. Index 1,..,4 (bounding box), Index 5 (did the object appear)
+. Does this work? Let's think of 2 scenarios:
+    . # 1 - object is in the image => Make sense
+    . # 2 - object is not in the image
+        . This does not make sense
+        . t1, ..., t4 are not defined, only t5 = 0
+
+One Solution
+        L = t5 x BCE(t1,..,t4, p1,...,p4) + BCE(t5, p5)
+    . BCE(t1,...,t4, p1,...,p4) : bounding box loss,  BCE(t5, p5): Detection loss
+    . If t5 = 1, then the object appeared, so we care about the bounding box
+    . If t5 = 0, then the object didn't appear, the bounding box loss is 0
+
+Weighting Each Term
+. What if, after training, the model becomes good at detecting the presence of an object, but bad at finding it?
+. Then we can weight each term in the loss
+. Side note: this appears in other computer vision applications(e.g. neural style transfer)
+    . Loss = Weight 1 * Content Loss + Weight 2 * Style Loss
+
+        L = alpha x t5 x BCE(t1,..,t4, p1,...,p4) + beta x BCE(t5, p5)
+
+SUMMARY
+. Add a binary classification output to detect whether the object appeared
+. Can still use the sigmoid at every output
+. Custom loss function to ignore bounding box loss when object doesn't appear
+################################ PART 7 ################################
+. Recap:
+  . Plain white box on black background
+  . Replace the white box (object) with Charmander
+  . Resize Charmander
+  . Flip Charmander!
+  . Real Background images!
+  . What if the object doesn't appear?
+  . This lecture: multiple classes of objects
+
+Multiclass Classification
+. How do we this again? The softmax!
+VGG => Class 1, ..., Class K
+? Problem: we still have 2 other tasks:
+    # 1 - bounding box
+    # 2 - detecting whether an object exists
+Why is this a problem?
+. Suppose we have K = 3 classes
+. Then:
+    . 4 outputs for bounding box prediction
+    . 1 output for binary classifier
+    . 3 output for each class
+    . Total = 8 outputs
+. The problem is:
+    . We need softmax for 3 outputs
+    . We need sigmoid for the others
+. The solution:
+VGG => Dense(5, 'sigmoid') (x1)
+    => Dense(3, 'softmax') (x2)
+
+------------------------------
+x = flatten output of VGG
+x1 = Dense(5, 'sigmoid')(x)
+x2 = Dense(3, 'softmax')(x)
+x = Concatenate()((x1, x2))
+------------------------------
+
+Loss Function
+. BCE = Binary Cross-Entropy
+. CCE = Categorical Cross-Entropy
+. Index 1..4 = Bounding Box
+. Index 5..7 = Classes
+. Index 8 = Object appear flag
+. t = target, p = prediction
+
+L = t8 x BCE(t1,..,t4, p1,..,p4) + t8 x CCE(t5,..,t7, p5,..,p7) + BCE(t8, p8)
+. You can also weight each term, e.g
+L = alpha x Term1 + beta x Term2 + gamma x Term3

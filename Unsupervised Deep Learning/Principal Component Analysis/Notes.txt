@@ -1,0 +1,8 @@
+1. PCA for NLP
+. Consider synonyms
+. 2 words that have the same meaning
+E.g: "tiny" / "small",  "teacher" / "instructor"
+Why is PCA useful here?
+. PCA's job: to reduce dimensionality and decorrelate
+. In order to reduce dimensionality, the raw data must contain redundancy
+. Redundancy happens in the form of correlations

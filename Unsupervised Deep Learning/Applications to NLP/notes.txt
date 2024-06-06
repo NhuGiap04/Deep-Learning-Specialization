@@ -1,0 +1,38 @@
+I. LATENT SEMANTIC ANALYSIS
+. multiple words with the same meaning (synonymy)
+. one word with multiple meanings (polysemy)
+
+Synonyms:
+. "buy" and "purchase"
+. "big" and "large"
+. "quick" and "speedy"
+
+Polysemes:
+"Man", "Milk"
+
+Latent Variables:
+z = 0.7 * computer + 0.5 * PC + 0.6 * laptop
+Would this help with polysemy?
+
+II. T-SNE + K-MEANS: FINDING CLUSTERS OF RELATED WORDS
+K-Means Application: Related Words
+. Plot and find clusterings of words from book titles
+
+Create a term-document matrix (each "document" is a book title"
+. N = # words in vocabulary
+. D = # documents
+. X[n, d] = # of times word n appears in document d
+
+. Convert X into a TF-IDF matrix
+. Reduce dimensionality from D -> 2, so that we can plot it : "t-SNE"
+. Finally, we perform K-means with K = N/10
+
+Highlights:
+. Save scatterplot instead of showing it
+E.g:
+random_colors = np.random.random((K, 3))
+colors = R.dot(random_colors)
+plt.figure(figsize=(80.0, 80.0))
+plt.scatter(X[:, 0], X[:, 1], s=300, alpha=0.9, c=colors)
+annotate1(X, index_word_map)
+plt.savefig("test.png")
