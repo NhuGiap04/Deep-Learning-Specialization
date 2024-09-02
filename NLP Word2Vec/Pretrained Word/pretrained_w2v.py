@@ -6,7 +6,7 @@ from gensim.models import KeyedVectors
 # 3 million words and phrases
 # D = 300
 word_vectors = KeyedVectors.load_word2vec_format(
-    './Datasets/GoogleNews-vectors-negative300.bin',
+    '../Datasets/GoogleNews-vectors-negative300.bin',
     binary=True
 )
 
