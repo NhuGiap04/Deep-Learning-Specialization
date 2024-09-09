@@ -1,10 +1,10 @@
 import os, sys
 
-from keras.models import Model
+from tensorflow.keras.models import Model
 from keras.layers import Input, LSTM, GRU, Dense, Embedding, \
     Bidirectional, RepeatVector, Concatenate, Activation, Dot, Lambda
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 import keras.backend as K
 
 import numpy as np
