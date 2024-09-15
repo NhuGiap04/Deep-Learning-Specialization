@@ -1,0 +1,75 @@
+I. Dataset Format for Object Detection
+
+1. COCO Format
+{
+    "categories": [...],
+    "images": [...],
+    "annotations": [...]
+}
+
+
+A. Categories
+{
+    "categories": [
+        {
+            "id": 0,
+            "name": "Cat",
+            "supercategory": "none"
+        },
+        {
+            "id": 1,
+            "name": "Dog",
+            "supercategory": "none"
+        },
+        ...
+    ],
+    ...
+}
+
+B. Images
+{
+    ...
+    "images": [
+    {
+        "id": 0,
+        "file_name": "r17zv25.jpg",
+        "height": 4032,
+        "width": 3024
+    },
+    ...
+    ],
+    ...
+}
+
+C. Annotations
+{
+    ...
+    "annotations": [
+        {
+            "id": 0,
+            "area": 6631042,
+            "bbox": [533, 1173, 2491, 2662],
+            "category_id": 0,
+            "image_id": 9
+        },
+        ...
+    ],
+}
+
+2. KerasCV Dataset Format
+- A table:
+ . images: np.array()
+ . classes: [...]
+ . bounding_boxes: [[[...],...],...]
+
+
+Example: Processing COCO Dataset
+- Given a COCO JSON file, create 3 lists
+- images = [list of individual filepaths]
+- classes = [[1, 5, 5], [0], [100],...]
+- bounding_boxes = []
+
+
+
+
+II. LabelImg
